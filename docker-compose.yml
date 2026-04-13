@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  # MySQL Database Service
+  mysql:
+    image: mysql:8.0
+    container_name: task-manager-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: taskdb
+    ports:
+      - "3307:3306" # Updated to 3307 to avoid conflict with local MySQL
+    volumes:
+      - mysql_data:/var/lib/mysql
+    restart: unless-stopped
+
+  # Spring Boot Backend Service
+  backend:
+    build: ./backend
+    container_name: task-manager-backend
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mysql
+    # We use environment variables to override the application.properties natively in Docker
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/taskdb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+    restart: unless-stopped
+
+  # React Frontend Service
+  frontend:
+    build: ./frontend
+    container_name: task-manager-frontend
+    ports:
+      - "3000:3000" # Expose port 3000 as requested
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
