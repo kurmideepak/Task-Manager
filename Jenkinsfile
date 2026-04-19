@@ -5,12 +5,6 @@ pipeline {
         timestamps()
     }
 
-    tools {
-        maven 'Maven'
-        jdk 'JDK17'
-        nodejs 'NodeJS'
-    }
-
     stages {
         stage('Checkout') {
             steps {
@@ -18,27 +12,11 @@ pipeline {
             }
         }
 
-        stage('Build Backend') {
-            steps {
-                dir('backend') {
-                    bat 'mvn clean package'
-                }
-            }
-        }
-
-        stage('Build Frontend') {
-            steps {
-                dir('frontend') {
-                    bat 'npm install'
-                    bat 'npm run build'
-                }
-            }
-        }
-
-        stage('Docker Compose Deploy') {
+        stage('Build & Deploy using Docker Compose') {
             steps {
                 bat 'docker-compose down'
-                bat 'docker-compose up -d --build'
+                bat 'docker-compose build'
+                bat 'docker-compose up -d'
             }
         }
     }

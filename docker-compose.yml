@@ -9,10 +9,15 @@ services:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: taskdb
     ports:
-      - "3307:3306" # Updated to 3307 to avoid conflict with local MySQL
+      - "3307:3306" # Local mapping unchanged to avoid host conflicts
     volumes:
       - mysql_data:/var/lib/mysql
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # Spring Boot Backend Service
   backend:
@@ -21,12 +26,14 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - mysql
-    # We use environment variables to override the application.properties natively in Docker
+      mysql:
+        condition: service_healthy
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/taskdb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: root
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: taskdb
+      DB_USER: root
+      DB_PASSWORD: root
     restart: unless-stopped
 
   # React Frontend Service
@@ -34,10 +41,11 @@ services:
     build: ./frontend
     container_name: task-manager-frontend
     ports:
-      - "3000:3000" # Expose port 3000 as requested
+      - "3000:3000"
     depends_on:
       - backend
     restart: unless-stopped
 
 volumes:
   mysql_data:
+
