@@ -6,30 +6,55 @@ pipeline {
     }
 
     stages {
-        stage('Checkout') {
+
+        stage('Checkout Code') {
             steps {
                 checkout scm
             }
         }
 
-        stage('Build & Deploy using Docker Compose') {
+        stage('Clean Old Containers') {
             steps {
-                bat 'docker-compose down'
+                bat 'docker rm -f task-manager-mysql || exit 0'
+                bat 'docker rm -f task-manager-backend || exit 0'
+                bat 'docker rm -f task-manager-frontend || exit 0'
+            }
+        }
+
+        stage('Stop Previous Deployment') {
+            steps {
+                bat 'docker-compose down --remove-orphans'
+            }
+        }
+
+        stage('Build Docker Images') {
+            steps {
                 bat 'docker-compose build'
+            }
+        }
+
+        stage('Run Containers') {
+            steps {
                 bat 'docker-compose up -d'
+            }
+        }
+
+        stage('Verify Running Containers') {
+            steps {
+                bat 'docker ps'
             }
         }
     }
 
     post {
         success {
-            echo 'Pipeline execution completed successfully!'
+            echo '✅ Pipeline executed successfully! Application deployed.'
         }
         failure {
-            echo 'Pipeline execution failed! Please check the build logs.'
+            echo '❌ Pipeline failed! Check logs for errors.'
         }
         always {
-            echo 'Finished executing pipeline.'
+            echo '📌 Pipeline execution finished.'
         }
     }
 }
